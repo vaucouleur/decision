@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/smt-core",
+  "crates/smt-sat",
+  "crates/smt-engine",
+  "crates/smt-api",
+  "crates/smt-tests",
+]
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"

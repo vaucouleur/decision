@@ -1,0 +1,15 @@
+[package]
+name = "smt-engine"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+test-debug = []
+
+[dependencies]
+hashbrown = "0.14"
+rustc-hash = "1"
+smt-core = { path = "../smt-core" }
+smt-sat = { path = "../smt-sat" }
