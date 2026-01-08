@@ -98,7 +98,7 @@ pub fn eqshare_to_dot(
     }
 
     for (t, nid) in &term_nodes {
-        let lab = fmt_term(ctx, *t).replace('"', "\\"");
+        let lab = fmt_term(ctx, *t).replace('"', "\\\"");
         writeln!(&mut out, "  {nid} [shape=ellipse,label=\"{lab}\"];").ok();
     }
 

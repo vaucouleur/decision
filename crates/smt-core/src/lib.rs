@@ -5,6 +5,12 @@
 
 use rustc_hash::FxHashMap;
 
+/// Error type for fallible APIs in this crate family.
+pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+/// Result alias for fallible APIs in this crate family.
+pub type Result<T> = std::result::Result<T, Error>;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TermId(pub u32);
 

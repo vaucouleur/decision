@@ -17,11 +17,12 @@ use crate::eqshare_trace::{EqShareEvent, EqShareTrace};
 use crate::reason::{ReasonArena, ReasonId};
 use crate::reason_dot::{reason_to_dot, DotLimits};
 use crate::shared_terms::SharedTermOracle;
-use crate::theory::{EqualitySharing, SharedEq, Theory};
+use crate::theory::{SharedEq, Theory};
 use crate::theory_ctx::TheoryCtx;
 
 type FxBuild = BuildHasherDefault<FxHasher>;
 
+#[derive(Debug, Clone, Copy)]
 pub enum CheckSat {
     Sat,
     Unsat,
@@ -96,8 +97,6 @@ impl<K: smt_sat::SatKernel> SmtEngine<K> {
         let dbg = self.config.debug_eq;
         let enabled = dbg.enabled;
 
-        let mut tcx = TheoryCtx::new(&mut self.reasons);
-
         if enabled && dbg.log_shared_stats {
             eprintln!(
                 "[eqshare][epoch={}]: shared_terms={}",
@@ -106,12 +105,17 @@ impl<K: smt_sat::SatKernel> SmtEngine<K> {
             );
         }
 
+        let theory_names: Vec<&'static str> = self.theories.iter().map(|th| th.name()).collect();
+
         let mut exported: Vec<(TheoryId, SharedEq)> = Vec::new();
-        for (i, th) in self.theories.iter_mut().enumerate() {
-            let src = TheoryId(i);
-            if let Some(sh) = th.equality_sharing_mut() {
-                for eq in sh.export_equalities(&self.shared_terms, self.export_epoch, &mut tcx) {
-                    exported.push((src, eq));
+        {
+            let mut tcx = TheoryCtx::new(&mut self.reasons);
+            for (i, th) in self.theories.iter_mut().enumerate() {
+                let src = TheoryId(i);
+                if let Some(sh) = th.equality_sharing_mut() {
+                    for eq in sh.export_equalities(&self.shared_terms, self.export_epoch, &mut tcx) {
+                        exported.push((src, eq));
+                    }
                 }
             }
         }
@@ -151,15 +155,20 @@ impl<K: smt_sat::SatKernel> SmtEngine<K> {
                         let mut rs = String::new();
                         for (idx, l) in lits.iter().take(dbg.max_reason_lits).enumerate() {
                             if idx > 0 { rs.push_str(", "); }
-                            rs.push_str(if l.is_pos() { &format!("v{}", l.var().0) } else { &format!("¬v{}", l.var().0) });
+                            let lit_str = if l.is_pos() {
+                                format!("v{}", l.var().0)
+                            } else {
+                                format!("¬v{}", l.var().0)
+                            };
+                            rs.push_str(&lit_str);
                         }
                         if lits.len() > dbg.max_reason_lits { rs.push_str(", ..."); }
 
                         eprintln!(
                             "[eqshare][epoch={}]: {} -> {} {} = {}{}",
                             self.export_epoch,
-                            self.theories[src.0].name(),
-                            self.theories[dst.0].name(),
+                            theory_names[src.0],
+                            theory_names[dst.0],
                             a_str,
                             b_str,
                             if rs.is_empty() { "".to_string() } else { format!("  because {rs}") },
@@ -168,6 +177,7 @@ impl<K: smt_sat::SatKernel> SmtEngine<K> {
                 }
 
                 if let Some(sh) = th.equality_sharing_mut() {
+                    let mut tcx = TheoryCtx::new(&mut self.reasons);
                     sh.import_equality(eq.clone(), &mut tcx);
                 }
             }
